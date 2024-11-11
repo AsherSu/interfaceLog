@@ -1,0 +1,22 @@
+# Refer https://docs.halo.run/developer-guide/plugin/basics/manifest
+
+apiVersion: plugin.halo.run/v1alpha1
+kind: Plugin
+metadata:
+  # The name defines how the plugin is invoked, A unique name
+  name: interfaceLog
+spec:
+  enabled: true
+  requires: ">=2.20.0"
+  author:
+    name: Asher Su
+    website: https://github.com/halo-dev
+  logo: logo.png
+  homepage: https://github.com/halo-dev/plugin-starter#readme
+  repo: https://github.com/AsherSu/interfaceLog
+  issues: https://github.com/AsherSu/interfaceLog/issues
+  displayName: "接口日志"
+  description: "记录接口请求日志"
+#  license:
+#    - name: "GPL-3.0"
+#      url: "https://github.com/halo-dev/plugin-starter/blob/main/LICENSE"
