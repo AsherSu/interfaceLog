@@ -1,76 +1,47 @@
-# plugin-starter
+# halo-plugin-interfaceLog
 
-Halo 2.0 插件开发快速开始模板。
+[中文说明](./README_zh.md)
 
-## 开发环境
+This is a Halo plugin for recording interface logs. It includes request parameters, response parameters, request time, request method, request path, request IP, request duration, request status code, request source, etc.
 
-插件开发的详细文档请查阅：<https://docs.halo.run/developer-guide/plugin/introduction>
 
-所需环境：
+## Features
 
-1. Java 17
-2. Node 20
-3. pnpm 9
-4. Docker (可选)
+- Record request parameters, response parameters, request time, request method, request path, request IP, request duration, request status code, request source, etc.
+- Support interface log query, export, delete, clear, etc.
+- Support interface log query, sort, page, etc.
+- Support interface record custom rule configuration.
+- Support interface record rule import and export.
+- Support interface record cleanup: scheduled and manual.
 
-克隆项目：
+## Usage
 
-```bash
-git clone git@github.com:halo-sigs/plugin-starter.git
-
-# 或者当你 fork 之后
-
-git clone git@github.com:{your_github_id}/plugin-starter.git
+Download the plugin and enable it in the Halo backend management interface. Then go to the plugin configuration page, configure the interface recording rules. rules_example.json is an example rule, which can be imported into the plugin for use.
+If no interface recording rules are configured, the plugin will not record any interface requests by default.
+```json
+{
+  "interfaceLogRules": [
+    {
+      "isInclude": true,
+      "rule": "/apis/**",
+      "version": "1"
+    },
+    {
+      "isInclude": false,
+      "rule": "/**/*.js",
+      "version": "1"
+    },
+    {
+      "isInclude": false,
+      "rule": "/**/*.css",
+      "version": "1"
+    },
+    {
+      "isInclude": false,
+      "rule": "/apis/dailyActive.halo.run/v1alpha1/interfaceLog/*",
+      "version": "1"
+    }
+  ]
+}
 ```
 
-```bash
-cd path/to/plugin-starter
-```
-
-### 运行方式 1（推荐）
-
-> 此方式需要本地安装 Docker
-
-```bash
-# macOS / Linux
-./gradlew pnpmInstall
-
-# Windows
-./gradlew.bat pnpmInstall
-```
-
-```bash
-# macOS / Linux
-./gradlew haloServer
-
-# Windows
-./gradlew.bat haloServer
-```
-
-执行此命令后，会自动创建一个 Halo 的 Docker 容器并加载当前的插件，更多文档可查阅：<https://docs.halo.run/developer-guide/plugin/basics/devtools>
-
-### 运行方式 2
-
-> 此方式需要使用源码运行 Halo
-
-编译插件：
-
-```bash
-# macOS / Linux
-./gradlew build
-
-# Windows
-./gradlew.bat build
-```
-
-修改 Halo 配置文件：
-
-```yaml
-halo:
-  plugin:
-    runtime-mode: development
-    fixedPluginPath:
-      - "/path/to/plugin-starter"
-```
-
-最后重启 Halo 项目即可。
