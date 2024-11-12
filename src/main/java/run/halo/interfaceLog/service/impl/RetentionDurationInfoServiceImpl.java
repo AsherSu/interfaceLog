@@ -35,7 +35,7 @@ public class RetentionDurationInfoServiceImpl implements RetentionDurationInfoSe
                     info.setSpec(new RetentionDurationInfo.RetentionDurationInfoSpec());
                     info.setMetadata(new Metadata());
                     info.getSpec().setDay(retentionDuration.getDays());
-                    info.getMetadata().setName(String.valueOf(System.currentTimeMillis()));
+                    info.getMetadata().setName("interface-log-retention-duration");
                     return client.create(info).thenReturn(true);
                 } else {
                     RetentionDurationInfo existingInfo = list.get(0);
@@ -62,7 +62,7 @@ public class RetentionDurationInfoServiceImpl implements RetentionDurationInfoSe
                     info.setSpec(new RetentionDurationInfo.RetentionDurationInfoSpec());
                     info.setMetadata(new Metadata());
                     info.getSpec().setDay(7);
-                    info.getMetadata().setName(String.valueOf(System.currentTimeMillis()));
+                    info.getMetadata().setName("interface-log-retention-duration");
                     return client.create(info);
                 }
                 return Mono.just(list.get(0));
