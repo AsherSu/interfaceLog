@@ -49,7 +49,7 @@ public class RetentionDurationInfoEndpoint implements CustomEndpoint {
         return request.bodyToMono(RetentionDurationBodyParam.class)
             .flatMap(retentionDurationInfoService::setRetentionDurationInfo)
             .flatMap(info -> ServerResponse.ok().bodyValue(info))
-            .onErrorResume(e -> ServerResponse.badRequest().bodyValue(e.getMessage()));
+            .onErrorResume(e -> ServerResponse.status(500).bodyValue(e.getMessage()));
     }
 
     private Mono<ServerResponse> getRetentionDuration(ServerRequest request) {
@@ -57,6 +57,4 @@ public class RetentionDurationInfoEndpoint implements CustomEndpoint {
             .flatMap(info -> ServerResponse.ok().bodyValue(info))
             .switchIfEmpty(ServerResponse.notFound().build());
     }
-
-
 } 

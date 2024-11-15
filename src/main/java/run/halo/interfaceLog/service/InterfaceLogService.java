@@ -8,7 +8,7 @@ import run.halo.interfaceLog.vo.SelectorVO;
 import run.halo.interfaceLog.vo.InterfaceLogVO;
 
 public interface InterfaceLogService {
-    Flux<Boolean> deleteAll();
+    Mono<Boolean> deleteAll();
 
     Flux<SelectorVO> getAllUserInLog(String start);
 

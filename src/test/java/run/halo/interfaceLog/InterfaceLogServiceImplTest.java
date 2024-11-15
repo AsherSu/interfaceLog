@@ -64,7 +64,6 @@ public class InterfaceLogServiceImplTest {
 
         StepVerifier.create(interfaceLogService.deleteAll())
                 .expectNext(true)
-                .expectNext(true)
                 .verifyComplete();
     }
 

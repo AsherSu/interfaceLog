@@ -5,36 +5,26 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.web.server.context.ServerSecurityContextRepository;
 import org.springframework.stereotype.Component;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
-import run.halo.app.extension.ExtensionUtil;
-import run.halo.app.extension.ListOptions;
 import run.halo.app.extension.Metadata;
-import run.halo.app.extension.ReactiveExtensionClient;
-import run.halo.app.extension.index.query.QueryFactory;
 import run.halo.app.security.AdditionalWebFilter;
-import run.halo.interfaceLog.SnowflakeIdGenerator;
 import run.halo.interfaceLog.extension.InterfaceLogInfo;
-import run.halo.interfaceLog.extension.InterfaceLogRuleInfo;
+import run.halo.interfaceLog.matcher.PathMatcher;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -42,82 +32,44 @@ public class InterfaceLogFilter implements AdditionalWebFilter {
 
     Logger logger = LoggerFactory.getLogger(InterfaceLogFilter.class);
 
-    private final ReactiveExtensionClient client;
-
     private final ServerSecurityContextRepository serverSecurityContextRepository;
 
-    private Mono<Map<String, List<String>>> antPathMatchers;
+    private final PathMatcher pathMatcher;
 
-    private final AntPathMatcher antPathMatcher = new AntPathMatcher();
-
-    public InterfaceLogFilter(ReactiveExtensionClient reactiveExtensionClient,
-                              ServerSecurityContextRepository serverSecurityContextRepository) {
-        this.client = reactiveExtensionClient;
+    public InterfaceLogFilter(ServerSecurityContextRepository serverSecurityContextRepository,
+                              PathMatcher pathMatcher) {
         this.serverSecurityContextRepository = serverSecurityContextRepository;
-    }
-
-    public void refreshMatcher() {
-        antPathMatchers = client.listAll(InterfaceLogRuleInfo.class, ListOptions.builder().andQuery(
-                        QueryFactory.all()).build(), Sort.unsorted())
-                .mapNotNull(i -> ExtensionUtil.isDeleted(i) ? null : i)
-                .collectList()
-                .map(interfaceLogRuleInfo -> {
-                    Map<String, List<String>> antPathMatchers = new HashMap<>();
-                    List<String> include = new ArrayList<>();
-                    List<String> exclude = new ArrayList<>();
-                    antPathMatchers.put("include", include);
-                    antPathMatchers.put("exclude", exclude);
-
-                    interfaceLogRuleInfo.forEach(rule -> {
-                        if (rule.getSpec().getIsInclude()) {
-                            antPathMatchers.get("include")
-                                    .add(rule.getSpec().getRule());
-                        } else {
-                            antPathMatchers.get("exclude")
-                                    .add(rule.getSpec().getRule());
-                        }
-                    });
-
-                    if (antPathMatchers.get("include").isEmpty()) {
-                        antPathMatchers.get("exclude").add("/**");
-                    }
-
-                    return antPathMatchers;
-                });
+        this.pathMatcher = pathMatcher;
     }
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        if (antPathMatchers == null) {
-            refreshMatcher();
-        }
-        return antPathMatchers.flatMap(i -> matchPath(i, exchange.getRequest().getPath().value()))
-                .flatMap(matchResult -> {
-                    if (!matchResult) {
+        return pathMatcher.matches(exchange.getRequest().getPath().value())
+                .flatMap(result -> {
+                    if (!result) {
                         return chain.filter(exchange);
                     }
-                    InterfaceLogInfo interfaceLogInfo = new InterfaceLogInfo();
-                    return Mono.just(new GenerateInterfaceLogInfoServerHttpRequestDecorator(exchange, interfaceLogInfo))
-                            .map(e -> exchange.mutate().request(e).build())
-                            .flatMap(requestExchange -> generateLogInfo(requestExchange, interfaceLogInfo)
-                                    .flatMap(logInfo -> {
-                                        ServerWebExchange mutatedExchange = requestExchange.mutate()
-                                                .response(new CustomServerHttpResponseDecorator(
-                                                        requestExchange.getResponse(), logInfo))
-                                                .build();
-                                        return chain.filter(mutatedExchange);
-                                    }));
+                    return processLog(exchange, chain);
                 });
     }
 
-    private Mono<Boolean> matchPath(Map<String, List<String>> patternList, String path) {
-        List<String> include = patternList.get("include");
-        List<String> exclude = patternList.get("exclude");
-        boolean in = include.stream()
-                .anyMatch(pattern -> antPathMatcher.match(pattern, path));
-        boolean ex = exclude.stream()
-                .noneMatch(pattern -> antPathMatcher.match(pattern, path));
-        return Mono.just(in && ex);
+    private Mono<Void> processLog(ServerWebExchange exchange, WebFilterChain chain) {
+        InterfaceLogInfo interfaceLogInfo = new InterfaceLogInfo();
+        return Mono.just(new GenerateInterfaceLogInfoServerHttpRequestDecorator(exchange, interfaceLogInfo))
+                .map(e -> exchange.mutate().request(e).build())
+                .flatMap(requestExchange -> generateLogInfo(requestExchange, interfaceLogInfo)
+                        .flatMap(logInfo -> {
+                            ServerWebExchange mutatedExchange = requestExchange.mutate()
+                                    .response(new CustomServerHttpResponseDecorator(
+                                            requestExchange.getResponse(), logInfo))
+                                    .build();
+                            return chain.filter(mutatedExchange);
+                        }));
+    }
+
+    @Override
+    public int getOrder() {
+        return SecurityWebFiltersOrder.LAST.getOrder();
     }
 
     private Mono<InterfaceLogInfo> generateLogInfo(ServerWebExchange exchange,
@@ -139,14 +91,9 @@ public class InterfaceLogFilter implements AdditionalWebFilter {
                     interfaceLogInfo.getSpec().setRequestParams(
                             exchange.getRequest().getQueryParams().isEmpty() ? new HashMap<>() : exchange.getRequest().getQueryParams().toSingleValueMap());
                     interfaceLogInfo.setMetadata(new Metadata());
-                    interfaceLogInfo.getMetadata().setName(MetadataName.get());
+                    interfaceLogInfo.getMetadata().setName(String.valueOf(System.currentTimeMillis()));
                     return interfaceLogInfo;
                 });
-    }
-
-    @Override
-    public int getOrder() {
-        return SecurityWebFiltersOrder.LAST.getOrder();
     }
 
     private Date generateTime() {
@@ -195,15 +142,5 @@ public class InterfaceLogFilter implements AdditionalWebFilter {
                     return new String(bytes);
                 })
                 .defaultIfEmpty("");
-    }
-
-
-    class MetadataName {
-        private static SnowflakeIdGenerator snowflakeIdGenerator = new SnowflakeIdGenerator(1, 1);
-
-        public static String get() {
-            long id = snowflakeIdGenerator.nextId();
-            return String.valueOf(id);
-        }
     }
 }

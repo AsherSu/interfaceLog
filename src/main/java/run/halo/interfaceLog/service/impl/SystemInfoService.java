@@ -1,4 +1,4 @@
-package run.halo.interfaceLog.service;
+package run.halo.interfaceLog.service.impl;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;

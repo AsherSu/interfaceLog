@@ -13,6 +13,7 @@ import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.extension.index.query.QueryFactory;
 import run.halo.interfaceLog.filter.InterfaceLogFilter;
 import run.halo.interfaceLog.extension.InterfaceLogRuleInfo;
+import run.halo.interfaceLog.matcher.PathMatcher;
 import run.halo.interfaceLog.service.InterfaceLogRuleService;
 import run.halo.interfaceLog.vo.InterfaceLogRuleFileVO;
 import java.util.List;
@@ -24,7 +25,7 @@ public class InterfaceLogRuleServiceImpl implements InterfaceLogRuleService {
 
     private final ReactiveExtensionClient client;
 
-    private final InterfaceLogFilter interfaceLogFilter;
+    private final PathMatcher pathMatcher;
 
     @Override
     public Mono<InterfaceLogRuleInfo> updateInterfaceLogRule(
@@ -35,7 +36,7 @@ public class InterfaceLogRuleServiceImpl implements InterfaceLogRuleService {
                 // 保持原有的 metadata，只更新 spec
                 existing.setSpec(interfaceLogRuleInfo.getSpec());
                 return client.update(existing)
-                    .doOnSuccess(i -> interfaceLogFilter.refreshMatcher());
+                    .doOnSuccess(i -> pathMatcher.refreshMatcher());
             })
             .onErrorResume(e -> {
                 log.error("Failed to update interface log rule", e);
@@ -47,7 +48,7 @@ public class InterfaceLogRuleServiceImpl implements InterfaceLogRuleService {
     public Mono<InterfaceLogRuleInfo> createInterfaceLogRule(
         InterfaceLogRuleInfo interfaceLogRuleInfo) {
         return client.create(interfaceLogRuleInfo)
-            .doOnSuccess(i -> interfaceLogFilter.refreshMatcher())
+            .doOnSuccess(i -> pathMatcher.refreshMatcher())
             .onErrorResume(e -> {
                 log.error("Failed to update interface log rule", e);
                 return Mono.just(new InterfaceLogRuleInfo());
@@ -59,7 +60,7 @@ public class InterfaceLogRuleServiceImpl implements InterfaceLogRuleService {
         InterfaceLogRuleInfo interfaceLogRuleInfo) {
         return client.fetch(InterfaceLogRuleInfo.class,
                 interfaceLogRuleInfo.getMetadata().getName())
-            .flatMap(i -> client.delete(i).doOnSuccess(j -> interfaceLogFilter.refreshMatcher()))
+            .flatMap(i -> client.delete(i).doOnSuccess(j -> pathMatcher.refreshMatcher()))
             .onErrorResume(e -> {
                 log.error("Failed to update interface log rule", e);
                 return Mono.just(new InterfaceLogRuleInfo());
@@ -94,7 +95,7 @@ public class InterfaceLogRuleServiceImpl implements InterfaceLogRuleService {
                 return client.create(interfaceLogRuleInfo)
                     .doOnError(e -> log.error("Failed to import rule", e));
             })
-            .doOnNext(i->interfaceLogFilter.refreshMatcher())
+            .doOnNext(i->pathMatcher.refreshMatcher())
             .then(Mono.just(true))
             .onErrorResume(e -> {
                 log.error("Failed to import rules", e);

@@ -40,35 +40,40 @@ public class InterfaceLogEndpoint implements CustomEndpoint {
                 .GET("/interfaceLog/users",
                         this::getAllUserInLog,
                         builder -> builder.operationId("GetAllUserInLog")
-                                .description("list all users in interface logs.")
+                                .description("list part users in interface logs.")
                                 .response(responseBuilder().implementation(ArrayList.class))
                                 .tag(tag))
                 .GET("/interfaceLog/clientIps",
                         this::getAllClientIPInLog,
                         builder -> builder.operationId("GetAllClientIPInLog")
-                                .description("Get all client IP in log.")
+                                .description("Get part client IP in log.")
+                                .response(responseBuilder().implementation(ArrayList.class))
                                 .tag(tag))
                 .GET("/interfaceLog/paths",
                         this::getAllRequestPathInLog,
                         builder -> builder.operationId("GetAllClientIPInLog")
-                                .description("Get all request path in log.")
+                                .description("Get part request path in log.")
+                                .response(responseBuilder().implementation(ArrayList.class))
                                 .tag(tag))
                 .POST("/interfaceLog/search",
                         this::getInterfaceLogByCondition,
-                        builder -> builder.operationId("GetInerfaceLogByCondition")
-                                .description("Get inerface log by condition.")
+                        builder -> builder.operationId("GetInterfaceLogByCondition")
+                                .description("Get interface log by condition.")
+                                .response(responseBuilder().implementation(ArrayList.class))
                                 .tag(tag))
                 .GET("/interfaceLog/count",
                         this::count,
                         builder -> builder.operationId("GetAllClientIPInLog")
                                 .description("Get all request path in log.")
+                                .response(responseBuilder().implementation(Integer.class))
                                 .tag(tag))
                 .build();
     }
 
     private Mono<ServerResponse> count(ServerRequest request) {
         return interfaceLogService.count()
-                .flatMap(i -> ServerResponse.ok().bodyValue(i));
+                .flatMap(i -> ServerResponse.ok().bodyValue(i))
+                .onErrorResume(e -> ServerResponse.status(500).bodyValue(e.getMessage()));
     }
 
     private Mono<ServerResponse> getInterfaceLogByCondition(ServerRequest serverRequest) {
@@ -100,7 +105,8 @@ public class InterfaceLogEndpoint implements CustomEndpoint {
                         return interfaceLogService.getInterfaceLogByCondition(interfaceLogRequest)
                                 .flatMap(j -> ServerResponse.ok().bodyValue(j));
                     }
-                });
+                })
+                .onErrorResume(e -> ServerResponse.status(500).bodyValue(e.getMessage()));
     }
 
     @Override
@@ -110,8 +116,8 @@ public class InterfaceLogEndpoint implements CustomEndpoint {
 
     private Mono<ServerResponse> deleteAll(ServerRequest request) {
         return interfaceLogService.deleteAll()
-                .collectList()
-                .flatMap(i -> ServerResponse.ok().bodyValue(i));
+                .flatMap(i -> ServerResponse.ok().bodyValue(i))
+                .onErrorResume(e -> ServerResponse.status(500).bodyValue(e.getMessage()));
     }
 
     private Mono<ServerResponse> getAllUserInLog(ServerRequest request) {
@@ -119,7 +125,8 @@ public class InterfaceLogEndpoint implements CustomEndpoint {
                 .distinct()
                 .take(10)
                 .collectList()
-                .flatMap(i -> ServerResponse.ok().bodyValue(i));
+                .flatMap(i -> ServerResponse.ok().bodyValue(i))
+                .onErrorResume(e -> ServerResponse.status(500).bodyValue(e.getMessage()));
     }
 
     private Mono<ServerResponse> getAllClientIPInLog(ServerRequest request) {
@@ -128,7 +135,8 @@ public class InterfaceLogEndpoint implements CustomEndpoint {
                 .distinct()
                 .take(10)
                 .collectList()
-                .flatMap(i -> ServerResponse.ok().bodyValue(i));
+                .flatMap(i -> ServerResponse.ok().bodyValue(i))
+                .onErrorResume(e -> ServerResponse.status(500).bodyValue(e.getMessage()));
     }
 
     private Mono<ServerResponse> getAllRequestPathInLog(ServerRequest request) {
@@ -136,6 +144,7 @@ public class InterfaceLogEndpoint implements CustomEndpoint {
                 .distinct()
                 .take(10)
                 .collectList()
-                .flatMap(i -> ServerResponse.ok().bodyValue(i));
+                .flatMap(i -> ServerResponse.ok().bodyValue(i))
+                .onErrorResume(e -> ServerResponse.status(500).bodyValue(e.getMessage()));
     }
 }

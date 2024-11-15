@@ -23,11 +23,11 @@ import java.time.format.DateTimeFormatter;
 @Slf4j
 @Component
 @EnableScheduling
-public class DeleteSchedule {
+public class DeleteScheduler {
 
     private final ReactiveExtensionClient client;
 
-    public DeleteSchedule(ReactiveExtensionClient client) {
+    public DeleteScheduler(ReactiveExtensionClient client) {
         this.client = client;
     }
 

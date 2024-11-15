@@ -26,110 +26,110 @@ public class InterfaceLogServiceImpl implements InterfaceLogService {
     }
 
     @Override
-    public Flux<Boolean> deleteAll() {
+    public Mono<Boolean> deleteAll() {
         return client.listAll(InterfaceLogInfo.class,
-                ListOptions.builder()
-                    .andQuery(QueryFactory.all())
-                    .build(),
-                Sort.unsorted())
-            .flatMap(client::delete)
-            .flatMap(i -> Mono.just(true));
+                        ListOptions.builder()
+                                .andQuery(QueryFactory.all())
+                                .build(),
+                        Sort.unsorted())
+                .flatMap(client::delete)
+                .then(Mono.just(true));
     }
 
     @Override
     public Flux<SelectorVO> getAllUserInLog(String start) {
         return client.listAll(InterfaceLogInfo.class,
-                ListOptions.builder()
-                    .andQuery(QueryFactory.startsWith("spec.username", start))
-                    .andQuery(QueryFactory.all("spec.username"))
-                    .build(),
-                Sort.by("spec.username").ascending())
-            .map(i -> new SelectorVO(i.getSpec().getUsername(), "@" + i.getSpec().getUsername()));
+                        ListOptions.builder()
+                                .andQuery(QueryFactory.startsWith("spec.username", start))
+                                .andQuery(QueryFactory.all("spec.username"))
+                                .build(),
+                        Sort.by("spec.username").ascending())
+                .map(i -> new SelectorVO(i.getSpec().getUsername(), "@" + i.getSpec().getUsername()));
     }
 
     @Override
     public Flux<SelectorVO> getAllClientIPInLog(String start) {
         return client.listAll(InterfaceLogInfo.class,
-                ListOptions.builder()
-                    .andQuery(QueryFactory.startsWith("spec.clientIp", start))
-                    .andQuery(QueryFactory.all("spec.clientIp"))
-                    .build(),
-                Sort.by("spec.clientIp").ascending())
-            .map(i -> new SelectorVO(i.getSpec().getClientIp(), i.getSpec().getClientIp()));
+                        ListOptions.builder()
+                                .andQuery(QueryFactory.startsWith("spec.clientIp", start))
+                                .andQuery(QueryFactory.all("spec.clientIp"))
+                                .build(),
+                        Sort.by("spec.clientIp").ascending())
+                .map(i -> new SelectorVO(i.getSpec().getClientIp(), i.getSpec().getClientIp()));
     }
 
     @Override
     public Flux<SelectorVO> getAllRequestPathInLog(String start) {
         return client.listAll(InterfaceLogInfo.class,
-                ListOptions.builder()
-                    .andQuery(QueryFactory.startsWith("spec.path", start))
-                    .andQuery(QueryFactory.all("spec.path"))
-                    .build(),
-                Sort.by("spec.path").ascending())
-            .map(i -> new SelectorVO(i.getSpec().getPath(), i.getSpec().getPath()));
+                        ListOptions.builder()
+                                .andQuery(QueryFactory.startsWith("spec.path", start))
+                                .andQuery(QueryFactory.all("spec.path"))
+                                .build(),
+                        Sort.by("spec.path").ascending())
+                .map(i -> new SelectorVO(i.getSpec().getPath(), i.getSpec().getPath()));
     }
 
     @Override
     public Mono<ListResult<InterfaceLogVO>> getInterfaceLogByCondition(
-        InterfaceLogRequest interfaceLogRequest) {
+            InterfaceLogRequest interfaceLogRequest) {
         ListOptions.ListOptionsBuilder builder = ListOptions.builder();
 
         // todo 空字符串校验
         if (!ObjectUtils.isEmpty(interfaceLogRequest.getUsername())) {
             builder.andQuery(
-                QueryFactory.in("spec.username", interfaceLogRequest.getUsername()));
+                    QueryFactory.in("spec.username", interfaceLogRequest.getUsername()));
         }
 
         if (!ObjectUtils.isEmpty(interfaceLogRequest.getClientIp())) {
             builder.andQuery(
-                QueryFactory.in("spec.clientIp", interfaceLogRequest.getClientIp()));
+                    QueryFactory.in("spec.clientIp", interfaceLogRequest.getClientIp()));
         }
 
         if (!ObjectUtils.isEmpty(interfaceLogRequest.getPath())) {
             builder.andQuery(
-                QueryFactory.in("spec.path", interfaceLogRequest.getPath()));
+                    QueryFactory.in("spec.path", interfaceLogRequest.getPath()));
         }
 
         if (!ObjectUtils.isEmpty(interfaceLogRequest.getAccessTimes())) {
             builder.andQuery(
-                QueryFactory.between("spec.accessTime", interfaceLogRequest.getAccessTimes().get(0),
-                    interfaceLogRequest.getAccessTimes().get(1)));
+                    QueryFactory.between("spec.accessTime", interfaceLogRequest.getAccessTimes().get(0),
+                            interfaceLogRequest.getAccessTimes().get(1)));
         }
 
         ListOptions listOptions = builder.build();
 
         return client.listBy(InterfaceLogInfo.class,
-                listOptions,
-                PageRequestImpl.of(Integer.parseInt(interfaceLogRequest.getPage()),
-                    Integer.parseInt(interfaceLogRequest.getSize()),
-                    Sort.by("spec.accessTime").descending()))
-            .map(i -> new ListResult<>(i.getPage(),i.getSize(),i.getTotal(),i.get().map(InterfaceLogVO::new).toList()));
+                        listOptions,
+                        PageRequestImpl.of(Integer.parseInt(interfaceLogRequest.getPage()),
+                                Integer.parseInt(interfaceLogRequest.getSize()),
+                                Sort.by("spec.accessTime").descending()))
+                .map(i -> new ListResult<>(i.getPage(), i.getSize(), i.getTotal(), i.get().map(InterfaceLogVO::new).toList()));
     }
 
     @Override
     public Mono<ListResult<InterfaceLogVO>> getAllInterfaceLog(
-        InterfaceLogRequest interfaceLogRequest) {
+            InterfaceLogRequest interfaceLogRequest) {
         return client.listBy(InterfaceLogInfo.class,
-                ListOptions.builder()
-                    .andQuery(QueryFactory.all())
-                    .build(),
-                PageRequestImpl.of(
-                    Integer.parseInt(interfaceLogRequest.getPage()),
-                    Integer.parseInt(interfaceLogRequest.getSize()),
-                    Sort.by("spec.accessTime").descending()
+                        ListOptions.builder()
+                                .andQuery(QueryFactory.all())
+                                .build(),
+                        PageRequestImpl.of(
+                                Integer.parseInt(interfaceLogRequest.getPage()),
+                                Integer.parseInt(interfaceLogRequest.getSize()),
+                                Sort.by("spec.accessTime").descending()
+                        )
                 )
-            )
-            .map(i -> new ListResult<>(i.getPage(),i.getSize(),i.getTotal(),i.get().map(InterfaceLogVO::new).toList()));
+                .map(i -> new ListResult<>(i.getPage(), i.getSize(), i.getTotal(), i.get().map(InterfaceLogVO::new).toList()));
     }
 
     @Override
     public Mono<Long> count() {
         return client.listAll(InterfaceLogInfo.class,
-                ListOptions.builder()
-                    .andQuery(QueryFactory.all())
-                    .build(),
-                Sort.unsorted())
-            .filter(i->!ExtensionUtil.isDeleted(i))
-            .count();
+                        ListOptions.builder()
+                                .andQuery(QueryFactory.all())
+                                .build(),
+                        Sort.unsorted())
+                .filter(i -> !ExtensionUtil.isDeleted(i))
+                .count();
     }
 }
